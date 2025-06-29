@@ -1,0 +1,51 @@
+services:
+  mealie:
+    image: ghcr.io/mealie-recipes/mealie:v2.8.0
+    container_name: mealie
+    restart: unless-stopped
+    ports:
+      - 9925:9000
+    deploy:
+      resources:
+        limits:
+          # Setting an explicit memory limit is recommended. 
+          # Python can pre-allocate larger amounts of memory than is necessary if you have a machine with a lot of RAM. 
+          # This can cause the container to idle at a high memory usage. Setting a memory limit will improve idle performance.
+          memory: 1000M 
+    volumes:
+      - ${DATA_LOCATION}:/app/data/
+    environment:
+      # Set Backend ENV Variables Here
+      ALLOW_SIGNUP: "false"
+      PUID: ${PUID}
+      PGID: ${PGID}
+      TZ: ${TZ}
+      BASE_URL: ${BASE_URL}
+      # Database Settings
+      DB_ENGINE: postgres
+      POSTGRES_USER: mealie
+      POSTGRES_PASSWORD: mealie
+      POSTGRES_SERVER: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: mealie
+    depends_on:
+      postgres:
+        condition: service_healthy
+  postgres:
+    container_name: mealie_postgres
+    image: postgres:15
+    restart: unless-stopped
+    user: ${PUID}
+    volumes:
+      - ${DB_DATA_LOCATION}:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: mealie
+      POSTGRES_USER: mealie
+      PGUSER: mealie
+    healthcheck:
+      test:
+        - CMD
+        - pg_isready
+      interval: 30s
+      timeout: 20s
+      retries: 3
